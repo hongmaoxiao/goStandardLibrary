@@ -1,1 +1,1 @@
-# learn gopackage
+# learn go standard library
