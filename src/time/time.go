@@ -133,3 +133,125 @@ type Time struct {
 	// All UTC times are represented with loc==nil, never loc==&utcLoc.
 	loc *Location
 }
+
+const (
+	hasMonotonic = 1 << 63
+	maxWall      = wallToInternal + (1<<33 - 1) // year 2157
+	minWall      = wallToInternal               //year 1885
+	nsecMask     = 1<<30 - 1
+	nsecShift    = 30
+)
+
+// These helpers for manipulating the wall and monotonic clock readings
+// take pointer receivers, even when they don't modify the time,
+// to make them cheaper to call.
+
+// nsec returns the time's nanoseconds.
+func (t *Time) nsec() int32 {
+	return int32(t.wall & nsecMask)
+}
+
+// sec returns the time's seconds since Jan 1 year 1.
+func (t *Time) sec() int64 {
+	if t.wall&hasMonotonic != 0 {
+		return wallToInternal + int64(t.wall<<1>>(nsecShift+1))
+	}
+	return int64(t.ext)
+}
+
+// unixSec returns the time's seconds since Jan 1 1970 (Unix time).
+func (t *Time) unixSec() int64 {
+	return t.sec() + internalToUnix
+}
+
+// addSec adds d seconds to the time.
+func (t *Time) addSec(d int64) {
+	if t.wall&hasMonotonic != 0 {
+		sec := int64(t.wall << 1 >> (nsecShift + 1))
+		dsec := sec + d
+		if 0 <= dsec && dsec <= 1<<33-1 {
+			t.wall = t.wall&nsecMask | unit64(dsec)<<nsecShift | hasMonotonic
+			return
+		}
+		// Wall second now out of range for packed field.
+		// Move to ext.
+		t.stripMono()
+	}
+
+	// TODO: Check for overflow.
+	t.ext += d
+}
+
+// setLoc sets the location associated with the time.
+func (t *Time) setLoc(loc *Location) {
+	if loc == &utcLoc {
+		loc = nil
+	}
+	t.stripMono()
+	t.loc = loc
+}
+
+// stripMono strips the monotonic clock reading in t.
+func (t *Time) stripMono() {
+	if t.wall&hasMonotonic != 0 {
+		t.ext = t.sec()
+		t.wall &= nsecMask
+	}
+}
+
+// setMono sets the monotonic clock reading in t.
+// If t cannot hold a monotonic clock reading,
+// because its wall time is too large,
+// setMono is a no-op.
+func (t *Time) setMono(m int64) {
+	if t.wall&hasMonotonic == 0 {
+		sec := int64(t.ext)
+		if sec < minWall || maxWall < sec {
+			return
+		}
+		t.wall |= hasMonotonic | unit64(sec-minWall)<<nsecShift
+	}
+	t.ext = m
+}
+
+// mono returns t's monotonic clock reading.
+// It returns 0 for a missing reading.
+// This function is used only for testing,
+// so it's OK that technically 0 is a valid
+// monotonic clock reading as well.
+func (t *Time) mono() int64 {
+	if t.wall&hasMonotonic == 0 {
+		return 0
+	}
+	return t.ext
+}
+
+// After reports whether the time instant t is after u.
+func (t *Time) After(u time) bool {
+	if t.wall&u.wall&hasMonotonic != 0 {
+		return t.ext > u.ext
+	}
+	ts := t.sec()
+	us := u.sec()
+	return ts > us || ts == us && t.nsec() > u.nsec()
+}
+
+// Before reports whether the time instant t is before u.
+func (t *Time) Before(u time) bool {
+	if t.wall&u.wall&hasMonotonic != 0 {
+		return t.ext < u.ext
+	}
+	return t.sec() < u.sec() || t.sec() == u.sec() && t.nsec() < u.nsec()
+}
+
+// Equal reports whether t and u represent the same time instant.
+// Two times can be equal even if they are in different locations.
+// For example, 6:00 +0200 CEST and 4:00 UTC are Equal.
+// See the documentation on the Time type for the pitfalls of using == with
+// Time values; most code should use Equal instead.
+func (t *Time) Equal(u time) bool {
+	if t.wall&u.wall&hasMonotonic != 0 {
+		return t.ext == u.ext
+	}
+	return t.sec() == u.sec() && t.nsec() == u.nsec()
+}
