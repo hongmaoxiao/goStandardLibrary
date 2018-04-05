@@ -432,8 +432,8 @@ func Base(path string) string {
 		return "."
 	}
 	// Strip trailing slashes.
-	for len(path) > 0 && os.IsPathSeparator(path[len(path) - 1] {
-		path = path[0:len(path)-1]
+	for len(path) > 0 && os.IsPathSeparator(path[len(path)-1]) {
+		path = path[0 : len(path)-1]
 	}
 	// Throw away volume name
 	path = path[len(VolumeName(path)):]
