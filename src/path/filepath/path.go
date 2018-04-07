@@ -87,7 +87,7 @@ const (
 // https://9p.io/sys/doc/lexnames.html
 func Clean(path string) string {
 	originalPath := path
-	valLen := volumeNameLen(path)
+	volLen := volumeNameLen(path)
 	path = path[volLen:]
 	if path == "" {
 		if volLen > 1 && originalPath[1] != ':' {
@@ -127,7 +127,7 @@ func Clean(path string) string {
 				// can backtrack
 				out.w--
 				for out.w > dotdot && !os.IsPathSeparator(out.index(out.w)) {
-					oot.w--
+					out.w--
 				}
 			case !rooted:
 				// cannot backtrack, but not rooted, so append .. element.
@@ -227,9 +227,9 @@ func Ext(path string) string {
 // If path is relative the result will be relative to the current directory,
 // unless one of the components is an absolute symbolic link.
 // EvalSymlinks calls Clean on the result.
-func EvalSymlinks(path string) (string, error) {
-	return evalSymlinks(path)
-}
+// func EvalSymlinks(path string) (string, error) {
+// 	return evalSymlinks(path)
+// }
 
 // Abs returns an absolute representation of path.
 // If the path is not absolute it will be joined with the current
@@ -263,7 +263,7 @@ func Rel(basepath, targpath string) (string, error) {
 	baseVol := VolumeName(basepath)
 	targVol := VolumeName(targpath)
 	base := Clean(basepath)
-	targ := Clean(targgath)
+	targ := Clean(targpath)
 	if sameWord(targ, base) {
 		return ".", nil
 	}
@@ -276,7 +276,7 @@ func Rel(basepath, targpath string) (string, error) {
 	baseSlashed := len(base) > 0 && base[0] == Separator
 	targSlashed := len(targ) > 0 && targ[0] == Separator
 	if baseSlashed != targSlashed || !sameWord(baseVol, targVol) {
-		return "", errors.New("Rel: can't make " + targgath + " relative to " + basepath)
+		return "", errors.New("Rel: can't make " + targpath + " relative to " + basepath)
 	}
 	// Position base[b0:bi] and targ[t0:ti] at the first differing elements.
 	bl := len(base)
@@ -302,7 +302,7 @@ func Rel(basepath, targpath string) (string, error) {
 		t0 = ti
 	}
 	if base[b0:bi] == ".." {
-		return "", errors.New("Rel: can't make " + targgath + " relative to " + basepath)
+		return "", errors.New("Rel: can't make " + targpath + " relative to " + basepath)
 	}
 	if b0 != bl {
 		// Base elements left. Must go up before going down.
