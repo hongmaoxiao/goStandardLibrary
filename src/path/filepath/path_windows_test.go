@@ -7,7 +7,6 @@ package filepath_test
 import (
 	"flag"
 	"fmt"
-	"internal/testenv"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -16,6 +15,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+
+	"github.com/hongmaoxiao/goStandardLibrary/others/testenv"
 )
 
 func TestWinSplitListTestsAreValid(t *testing.T) {

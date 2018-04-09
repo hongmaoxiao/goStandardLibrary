@@ -7,7 +7,6 @@ package filepath_test
 import (
 	"errors"
 	"fmt"
-	"internal/testenv"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +15,8 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/hongmaoxiao/goStandardLibrary/others/testenv"
 )
 
 type PathTest struct {
