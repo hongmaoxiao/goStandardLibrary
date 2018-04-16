@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/hongmaoxiao/goStandardLibrary/filepath"
+	"github.com/hongmaoxiao/goStandardLibrary/path/filepath"
 )
 
 type PathTest struct {
