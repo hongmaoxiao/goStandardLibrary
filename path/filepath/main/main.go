@@ -14,7 +14,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hongmaoxiao/goStandardLibrary/others/testenv"
 	"github.com/hongmaoxiao/goStandardLibrary/path/filepath"
 )
 
@@ -430,7 +429,7 @@ func TestWalk() {
 	if runtime.GOOS == "darwin" {
 		switch runtime.GOARCH {
 		case "arm", "arm64":
-			restore := chtmpdir(t)
+			restore := chtmpdir()
 			defer restore()
 		}
 	}
@@ -448,7 +447,7 @@ func TestWalk() {
 	if len(errors) != 0 {
 		fmt.Errorf("unexpected errors: %s", errors)
 	}
-	checkMarks(t, true)
+	checkMarks(true)
 	errors = errors[0:0]
 
 	// Test permission errors. Only possible if we're not root
@@ -474,7 +473,7 @@ func TestWalk() {
 			fmt.Printf("expected 2 errors, got %d: %s", len(errors), errors)
 		}
 		// the inaccessible subtrees were marked manually
-		checkMarks(t, true)
+		checkMarks(true)
 		errors = errors[0:0]
 
 		// 4) capture errors, stop after first error.
@@ -493,7 +492,7 @@ func TestWalk() {
 			fmt.Printf("expected 1 error, got %d: %s", len(errors), errors)
 		}
 		// the inaccessible subtrees were marked manually
-		checkMarks(t, false)
+		checkMarks(false)
 		errors = errors[0:0]
 
 		// restore permissions
@@ -510,25 +509,25 @@ func TestWalk() {
 func touch(name string) {
 	f, err := os.Create(name)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	if err := f.Close(); err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 }
 
 func TestWalkSkipDirOnFile() {
 	td, err := ioutil.TempDir("", "walktest")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer os.RemoveAll(td)
 
 	if err := os.MkdirAll(filepath.Join(td, "dir"), 0755); err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
-	touch(t, filepath.Join(td, "dir/foo1"))
-	touch(t, filepath.Join(td, "dir/foo2"))
+	touch(filepath.Join(td, "dir/foo1"))
+	touch(filepath.Join(td, "dir/foo2"))
 
 	sawFoo2 := false
 	walker := func(path string, info os.FileInfo, err error) error {
@@ -543,7 +542,7 @@ func TestWalkSkipDirOnFile() {
 
 	err = filepath.Walk(td, walker)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	if sawFoo2 {
 		fmt.Printf("SkipDir on file foo1 did not block processing of foo2")
@@ -551,7 +550,7 @@ func TestWalkSkipDirOnFile() {
 
 	err = filepath.Walk(filepath.Join(td, "dir"), walker)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	if sawFoo2 {
 		fmt.Printf("SkipDir on file foo1 did not block processing of foo2")
@@ -561,18 +560,18 @@ func TestWalkSkipDirOnFile() {
 func TestWalkFileError() {
 	td, err := ioutil.TempDir("", "walktest")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer os.RemoveAll(td)
 
-	touch(t, filepath.Join(td, "foo"))
-	touch(t, filepath.Join(td, "bar"))
+	touch(filepath.Join(td, "foo"))
+	touch(filepath.Join(td, "bar"))
 	dir := filepath.Join(td, "dir")
 	if err := os.MkdirAll(filepath.Join(td, "dir"), 0755); err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
-	touch(t, filepath.Join(dir, "baz"))
-	touch(t, filepath.Join(dir, "stat-error"))
+	touch(filepath.Join(dir, "baz"))
+	touch(filepath.Join(dir, "stat-error"))
 	defer func() {
 		*filepath.LstatP = os.Lstat
 	}()
@@ -778,7 +777,7 @@ func simpleJoin(dir, path string) string {
 	return dir + string(filepath.Separator) + path
 }
 
-func testEvalSymlinks(, path, want string) {
+func testEvalSymlinks(path, want string) {
 	have, err := filepath.EvalSymlinks(path)
 	if err != nil {
 		fmt.Printf("EvalSymlinks(%q) error: %v", path, err)
@@ -789,21 +788,21 @@ func testEvalSymlinks(, path, want string) {
 	}
 }
 
-func testEvalSymlinksAfterChdir(, wd, path, want string) {
+func testEvalSymlinksAfterChdir(wd, path, want string) {
 	cwd, err := os.Getwd()
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer func() {
 		err := os.Chdir(cwd)
 		if err != nil {
-			t.Fatal(err)
+			fmt.Println(err)
 		}
 	}()
 
 	err = os.Chdir(wd)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 
 	have, err := filepath.EvalSymlinks(path)
@@ -821,7 +820,7 @@ func TestEvalSymlinks() {
 
 	tmpDir, err := ioutil.TempDir("", "evalsymlink")
 	if err != nil {
-		t.Fatal("creating temp dir:", err)
+		fmt.Println("creating temp dir:", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
@@ -829,7 +828,7 @@ func TestEvalSymlinks() {
 	// it means trusting the thing we're testing.
 	tmpDir, err = filepath.EvalSymlinks(tmpDir)
 	if err != nil {
-		t.Fatal("eval symlink for tmp dir:", err)
+		fmt.Println("eval symlink for tmp dir:", err)
 	}
 
 	// Create the symlink farm using relative paths.
@@ -842,7 +841,7 @@ func TestEvalSymlinks() {
 			err = os.Symlink(d.dest, path)
 		}
 		if err != nil {
-			t.Fatal(err)
+			fmt.Println(err)
 		}
 	}
 
@@ -854,15 +853,15 @@ func TestEvalSymlinks() {
 		if filepath.IsAbs(test.dest) || os.IsPathSeparator(test.dest[0]) {
 			dest = test.dest
 		}
-		testEvalSymlinks(t, path, dest)
+		testEvalSymlinks(path, dest)
 
 		// test EvalSymlinks(".")
-		testEvalSymlinksAfterChdir(t, path, ".", ".")
+		testEvalSymlinksAfterChdir(path, ".", ".")
 
 		// test EvalSymlinks("C:.") on Windows
 		if runtime.GOOS == "windows" {
 			volDot := filepath.VolumeName(tmpDir) + "."
-			testEvalSymlinksAfterChdir(t, path, volDot, volDot)
+			testEvalSymlinksAfterChdir(path, volDot, volDot)
 		}
 
 		// test EvalSymlinks(".."+path)
@@ -870,20 +869,20 @@ func TestEvalSymlinks() {
 		if filepath.IsAbs(test.dest) || os.IsPathSeparator(test.dest[0]) {
 			dotdotPath = test.dest
 		}
-		testEvalSymlinksAfterChdir(t,
+		testEvalSymlinksAfterChdir(
 			simpleJoin(tmpDir, "test"),
 			simpleJoin("..", test.path),
 			dotdotPath)
 
 		// test EvalSymlinks(p) where p is relative path
-		testEvalSymlinksAfterChdir(t, tmpDir, test.path, test.dest)
+		testEvalSymlinksAfterChdir(tmpDir, test.path, test.dest)
 	}
 }
 
 func TestEvalSymlinksIsNotExist() {
 	// testenv.MustHaveSymlink(t)
 
-	defer chtmpdir(t)()
+	defer chtmpdir()()
 
 	_, err := filepath.EvalSymlinks("notexist")
 	if !os.IsNotExist(err) {
@@ -892,7 +891,7 @@ func TestEvalSymlinksIsNotExist() {
 
 	err = os.Symlink("notexist", "link")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer os.Remove("link")
 
@@ -907,40 +906,40 @@ func TestIssue13582() {
 
 	tmpDir, err := ioutil.TempDir("", "issue13582")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer os.RemoveAll(tmpDir)
 
 	dir := filepath.Join(tmpDir, "dir")
 	err = os.Mkdir(dir, 0755)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	linkToDir := filepath.Join(tmpDir, "link_to_dir")
 	err = os.Symlink(dir, linkToDir)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	file := filepath.Join(linkToDir, "file")
 	err = ioutil.WriteFile(file, nil, 0644)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	link1 := filepath.Join(linkToDir, "link1")
 	err = os.Symlink(file, link1)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	link2 := filepath.Join(linkToDir, "link2")
 	err = os.Symlink(link1, link2)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 
 	// /tmp may itself be a symlink!
 	realTmpDir, err := filepath.EvalSymlinks(tmpDir)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	realDir := filepath.Join(realTmpDir, "dir")
 	realFile := filepath.Join(realDir, "file")
@@ -957,104 +956,10 @@ func TestIssue13582() {
 	for i, test := range tests {
 		have, err := filepath.EvalSymlinks(test.path)
 		if err != nil {
-			t.Fatal(err)
+			fmt.Println(err)
 		}
 		if have != test.want {
 			fmt.Printf("test#%d: EvalSymlinks(%q) returns %q, want %q", i, test.path, have, test.want)
-		}
-	}
-}
-
-// Test directories relative to temporary directory.
-// The tests are run in absTestDirs[0].
-var absTestDirs = []string{
-	"a",
-	"a/b",
-	"a/b/c",
-}
-
-// Test paths relative to temporary directory. $ expands to the directory.
-// The tests are run in absTestDirs[0].
-// We create absTestDirs first.
-var absTests = []string{
-	".",
-	"b",
-	"b/",
-	"../a",
-	"../a/b",
-	"../a/b/./c/../../.././a",
-	"../a/b/./c/../../.././a/",
-	"$",
-	"$/.",
-	"$/a/../a/b",
-	"$/a/b/c/../../.././a",
-	"$/a/b/c/../../.././a/",
-}
-
-func TestAbs() {
-	root, err := ioutil.TempDir("", "TestAbs")
-	if err != nil {
-		t.Fatal("TempDir failed: ", err)
-	}
-	defer os.RemoveAll(root)
-
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatal("getwd failed: ", err)
-	}
-	err = os.Chdir(root)
-	if err != nil {
-		t.Fatal("chdir failed: ", err)
-	}
-	defer os.Chdir(wd)
-
-	for _, dir := range absTestDirs {
-		err = os.Mkdir(dir, 0777)
-		if err != nil {
-			t.Fatal("Mkdir failed: ", err)
-		}
-	}
-
-	if runtime.GOOS == "windows" {
-		vol := filepath.VolumeName(root)
-		var extra []string
-		for _, path := range absTests {
-			if strings.Contains(path, "$") {
-				continue
-			}
-			path = vol + path
-			extra = append(extra, path)
-		}
-		absTests = append(absTests, extra...)
-	}
-
-	err = os.Chdir(absTestDirs[0])
-	if err != nil {
-		t.Fatal("chdir failed: ", err)
-	}
-
-	for _, path := range absTests {
-		path = strings.Replace(path, "$", root, -1)
-		info, err := os.Stat(path)
-		if err != nil {
-			fmt.Printf("%s: %s", path, err)
-			continue
-		}
-
-		abspath, err := filepath.Abs(path)
-		if err != nil {
-			fmt.Printf("Abs(%q) error: %v", path, err)
-			continue
-		}
-		absinfo, err := os.Stat(abspath)
-		if err != nil || !os.SameFile(absinfo, info) {
-			fmt.Printf("Abs(%q)=%q, not the same file", path, abspath)
-		}
-		if !filepath.IsAbs(abspath) {
-			fmt.Printf("Abs(%q)=%q, not an absolute path", path, abspath)
-		}
-		if filepath.IsAbs(abspath) && abspath != filepath.Clean(abspath) {
-			fmt.Printf("Abs(%q)=%q, isn't clean", path, abspath)
 		}
 	}
 }
@@ -1214,7 +1119,7 @@ func TestBug3486() { // https://golang.org/issue/3486
 	}
 	root, err := filepath.EvalSymlinks(runtime.GOROOT() + "/test")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	bugs := filepath.Join(root, "fixedbugs")
 	ken := filepath.Join(root, "ken")
@@ -1222,7 +1127,7 @@ func TestBug3486() { // https://golang.org/issue/3486
 	seenKen := false
 	err = filepath.Walk(root, func(pth string, info os.FileInfo, err error) error {
 		if err != nil {
-			t.Fatal(err)
+			fmt.Println(err)
 		}
 
 		switch pth {
@@ -1231,14 +1136,14 @@ func TestBug3486() { // https://golang.org/issue/3486
 			return filepath.SkipDir
 		case ken:
 			if !seenBugs {
-				t.Fatal("filepath.Walk out of order - ken before fixedbugs")
+				fmt.Println("filepath.Walk out of order - ken before fixedbugs")
 			}
 			seenKen = true
 		}
 		return nil
 	})
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	if !seenKen {
 		fmt.Errorf("%q not seen", ken)
@@ -1248,40 +1153,40 @@ func TestBug3486() { // https://golang.org/issue/3486
 func testWalkSymlink(mklink func(target, link string) error) {
 	tmpdir, err := ioutil.TempDir("", "testWalkSymlink")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer os.RemoveAll(tmpdir)
 
 	wd, err := os.Getwd()
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	defer os.Chdir(wd)
 
 	err = os.Chdir(tmpdir)
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 
 	err = mklink(tmpdir, "link")
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 
 	var visited []string
 	err = filepath.Walk(tmpdir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			t.Fatal(err)
+			fmt.Println(err)
 		}
 		rel, err := filepath.Rel(tmpdir, path)
 		if err != nil {
-			t.Fatal(err)
+			fmt.Println(err)
 		}
 		visited = append(visited, rel)
 		return nil
 	})
 	if err != nil {
-		t.Fatal(err)
+		fmt.Println(err)
 	}
 	sort.Strings(visited)
 	want := []string{".", "link"}
@@ -1295,7 +1200,103 @@ func TestWalkSymlink() {
 	testWalkSymlink(os.Symlink)
 }
 
+// Test directories relative to temporary directory.
+// The tests are run in absTestDirs[0].
+var absTestDirs = []string{
+	"a",
+	"a/b",
+	"a/b/c",
+}
+
+// Test paths relative to temporary directory. $ expands to the directory.
+// The tests are run in absTestDirs[0].
+// We create absTestDirs first.
+var absTests = []string{
+	".",
+	"b",
+	"b/",
+	"../a",
+	"../a/b",
+	"../a/b/./c/../../.././a",
+	"../a/b/./c/../../.././a/",
+	"$",
+	"$/.",
+	"$/a/../a/b",
+	"$/a/b/c/../../.././a",
+	"$/a/b/c/../../.././a/",
+}
+
+func TestAbs() {
+	root, err := ioutil.TempDir("", "TestAbs")
+	if err != nil {
+		fmt.Println("TempDir failed: ", err)
+	}
+	defer os.RemoveAll(root)
+
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("getwd failed: ", err)
+	}
+	err = os.Chdir(root)
+	if err != nil {
+		fmt.Println("chdir failed: ", err)
+	}
+	defer os.Chdir(wd)
+
+	for _, dir := range absTestDirs {
+		err = os.Mkdir(dir, 0777)
+		if err != nil {
+			fmt.Println("Mkdir failed: ", err)
+		}
+	}
+
+	if runtime.GOOS == "windows" {
+		vol := filepath.VolumeName(root)
+		var extra []string
+		for _, path := range absTests {
+			if strings.Contains(path, "$") {
+				continue
+			}
+			path = vol + path
+			extra = append(extra, path)
+		}
+		absTests = append(absTests, extra...)
+	}
+
+	err = os.Chdir(absTestDirs[0])
+	if err != nil {
+		fmt.Println("chdir failed: ", err)
+	}
+
+	for _, path := range absTests {
+		path = strings.Replace(path, "$", root, -1)
+		info, err := os.Stat(path)
+		if err != nil {
+			fmt.Printf("%s: %s", path, err)
+			continue
+		}
+
+		abspath, err := filepath.Abs(path)
+		if err != nil {
+			fmt.Printf("Abs(%q) error: %v", path, err)
+			continue
+		}
+		absinfo, err := os.Stat(abspath)
+		if err != nil || !os.SameFile(absinfo, info) {
+			fmt.Printf("Abs(%q)=%q, not the same file", path, abspath)
+		}
+		if !filepath.IsAbs(abspath) {
+			fmt.Printf("Abs(%q)=%q, not an absolute path", path, abspath)
+		}
+		if filepath.IsAbs(abspath) && abspath != filepath.Clean(abspath) {
+			fmt.Printf("Abs(%q)=%q, isn't clean", path, abspath)
+		}
+	}
+}
+
 func main() {
-	TestBase()
-	TestClean()
+	// TestBase()
+	// TestClean()
+	// TestDir();
+	TestAbs()
 }
